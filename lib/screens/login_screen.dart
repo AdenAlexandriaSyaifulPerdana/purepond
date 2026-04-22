@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:purepond_app/screens/monitoring_screen.dart';
-import 'package:purepond_app/screens/register_screen.dart';
 import 'package:purepond_app/screens/main_screen.dart';
 import 'package:purepond_app/screens/forgot_password_screen.dart';
 import 'package:purepond_app/services/auth_service_mock.dart';
@@ -52,30 +50,22 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: 40),
 
-                // Logo/Title
+                // Logo
                 Center(
                   child: Column(
                     children: [
+                      // Logo dari assets
                       Container(
-                        width: 100,
-                        height: 100,
+                        width: 180,
+                        height: 180,
                         decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          shape: BoxShape.circle,
+                          color: const Color.fromARGB(0, 227, 242, 253),
                         ),
-                        child: Icon(
-                          Icons.water_drop,
-                          size: 60,
-                          color: Colors.blue.shade700,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'PurePond',
-                        style: GoogleFonts.poppins(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue.shade800,
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          width: 180,
+                          height: 180,
+                          fit: BoxFit.cover,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -254,38 +244,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       );
                     }
                   },
-                ),
-
-                const SizedBox(height: 20),
-
-                // Register Link
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Belum punya akun? ',
-                      style: GoogleFonts.poppins(
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const RegisterScreen(),
-                          ),
-                        );
-                      },
-                      child: Text(
-                        'Daftar Sekarang',
-                        style: GoogleFonts.poppins(
-                          color: Colors.blue.shade700,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:purepond_app/screens/water_change_screen.dart';
 import 'package:purepond_app/widgets/monitoring_card.dart';
 
 class MonitoringScreen extends StatefulWidget {
@@ -27,11 +26,12 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
 
   DateTime _lastWaterChange = DateTime.now().subtract(const Duration(hours: 6));
 
-  // Threshold
-  final double _turbidityThreshold = 20.0;
-  final double _ammoniaThreshold = 0.5;
-  final double _phMinThreshold = 6.5;
-  final double _phMaxThreshold = 8.5;
+  // Threshold - STATIS (tidak bisa diubah user)
+  static const double _turbidityThreshold = 20.0;
+  static const double _ammoniaThreshold = 0.5;
+  static const double _phMinThreshold = 6.5;
+  static const double _phMaxThreshold = 8.5;
+  static const int _delayMinutes = 5; // Waktu tunda statis
 
   bool _isRefreshing = false;
 
@@ -47,7 +47,6 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
       _ammonia = 0.2 + (DateTime.now().second % 15) / 10;
       _phLevel = 6.8 + (DateTime.now().second % 25) / 10;
 
-      // Update water level berdasarkan kekeruhan
       if (_turbidity > _turbidityThreshold) {
         _lowerSensorActive = DateTime.now().second % 2 == 0;
       } else {
@@ -63,13 +62,6 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
         _ammonia > _ammoniaThreshold ||
         _phLevel < _phMinThreshold ||
         _phLevel > _phMaxThreshold;
-  }
-
-  String get _systemStatus {
-    if (_isDraining) return "Membuang Air...";
-    if (_isFilling) return "Mengisi Air...";
-    if (_needWaterChange) return "Air Perlu Dikuras";
-    return "Normal";
   }
 
   Color _getTurbidityColor() {
@@ -546,13 +538,65 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                             '1. Air keruh/amonia tinggi/pH tidak normal', true),
                         _buildFlowStep(
                             '2. Pompa buang air menyala', _needWaterChange),
-                        _buildFlowStep('3. Sensor bawah tidak terendam',
-                            !_lowerSensorActive),
+                        _buildFlowStep(
+                            '3. Pompa buang mati', !_lowerSensorActive),
                         _buildFlowStep(
                             '4. Pompa isi menyala (dari tandon)', _isFilling),
-                        _buildFlowStep(
-                            '5. Sensor atas terendam. Pompa isi mati',
+                        _buildFlowStep('5. Sensor atas terendam pompa isi mati',
                             _upperSensorActive),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Threshold Info (STATIS - Hanya Info)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.settings,
+                                size: 16, color: Colors.grey.shade700),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Pengaturan Batas :',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '• Kekeruhan > $_turbidityThreshold NTU',
+                          style: GoogleFonts.poppins(
+                              fontSize: 11, color: Colors.grey.shade600),
+                        ),
+                        Text(
+                          '• Amonia > $_ammoniaThreshold ppm',
+                          style: GoogleFonts.poppins(
+                              fontSize: 11, color: Colors.grey.shade600),
+                        ),
+                        Text(
+                          '• pH < $_phMinThreshold atau > $_phMaxThreshold',
+                          style: GoogleFonts.poppins(
+                              fontSize: 11, color: Colors.grey.shade600),
+                        ),
+                        Text(
+                          '• Waktu tunda: $_delayMinutes menit',
+                          style: GoogleFonts.poppins(
+                              fontSize: 11, color: Colors.grey.shade600),
+                        ),
                       ],
                     ),
                   ),
@@ -561,9 +605,9 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
 
                   // Trigger Conditions
                   Text(
-                    'Kondisi Pemicu Pengurasan:',
+                    'Status Pemicu Saat Ini:',
                     style: GoogleFonts.poppins(
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -593,119 +637,90 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
 
                   const SizedBox(height: 20),
 
-                  // Action Buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => WaterChangeScreen(
-                                  currentTurbidity: _turbidity,
-                                  currentAmmonia: _ammonia,
-                                  currentPh: _phLevel,
-                                ),
-                              ),
-                            ).then((_) => _refreshData());
-                          },
-                          icon: const Icon(Icons.settings, size: 18),
-                          label: Text(
-                            'Atur Threshold',
-                            style: GoogleFonts.poppins(fontSize: 13),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue.shade700,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: (_isDraining || _isFilling)
-                              ? null
-                              : () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      title: Text(
-                                        'Pengurasan Manual',
+                  // Tombol Kuras Manual (Hanya satu tombol)
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: (_isDraining || _isFilling)
+                          ? null
+                          : () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: Text(
+                                    'Pengurasan Manual',
+                                    style: GoogleFonts.poppins(),
+                                  ),
+                                  content: Text(
+                                    'Mulai pengurasan air sekarang?',
+                                    style: GoogleFonts.poppins(),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: Text(
+                                        'Batal',
                                         style: GoogleFonts.poppins(),
                                       ),
-                                      content: Text(
-                                        'Mulai pengurasan air sekarang?',
-                                        style: GoogleFonts.poppins(),
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context),
-                                          child: Text(
-                                            'Batal',
-                                            style: GoogleFonts.poppins(),
-                                          ),
-                                        ),
-                                        ElevatedButton(
-                                          onPressed: () {
-                                            setState(() {
-                                              _isDraining = true;
-                                            });
-                                            Navigator.pop(context);
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  'Pengurasan dimulai...',
-                                                  style: GoogleFonts.poppins(),
-                                                ),
-                                                backgroundColor: Colors.blue,
-                                              ),
-                                            );
-                                          },
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.green,
-                                          ),
-                                          child: Text(
-                                            'Mulai',
-                                            style: GoogleFonts.poppins(),
-                                          ),
-                                        ),
-                                      ],
                                     ),
-                                  );
-                                },
-                          icon: Icon(
-                            Icons.water_drop,
-                            size: 18,
-                            color: (_isDraining || _isFilling)
-                                ? Colors.grey
-                                : Colors.green.shade700,
-                          ),
-                          label: Text(
-                            _isDraining
-                                ? 'Membuang...'
-                                : (_isFilling ? 'Mengisi...' : 'Kuras Manual'),
-                            style: GoogleFonts.poppins(fontSize: 13),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.green.shade700,
-                            side: BorderSide(
-                              color: (_isDraining || _isFilling)
-                                  ? Colors.grey
-                                  : Colors.green.shade700,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          _isDraining = true;
+                                          _lastWaterChange = DateTime.now();
+                                        });
+                                        Navigator.pop(context);
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Pengurasan dimulai...',
+                                              style: GoogleFonts.poppins(),
+                                            ),
+                                            backgroundColor: Colors.blue,
+                                          ),
+                                        );
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.green,
+                                      ),
+                                      child: Text(
+                                        'Mulai',
+                                        style: GoogleFonts.poppins(),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                      icon: Icon(
+                        Icons.water_drop,
+                        size: 20,
+                        color: (_isDraining || _isFilling)
+                            ? Colors.grey
+                            : Colors.green.shade700,
+                      ),
+                      label: Text(
+                        _isDraining
+                            ? 'Sedang Membuang Air...'
+                            : (_isFilling
+                                ? 'Sedang Mengisi Air...'
+                                : 'Kuras Manual Sekarang'),
+                        style: GoogleFonts.poppins(fontSize: 14),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.green.shade700,
+                        side: BorderSide(
+                          color: (_isDraining || _isFilling)
+                              ? Colors.grey
+                              : Colors.green.shade700,
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),

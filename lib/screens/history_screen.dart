@@ -95,7 +95,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
               const SizedBox(width: 12),
               Wrap(
-                spacing: 8,
+                spacing: 6,
                 children: ['Semua', 'Otomatis', 'Manual'].map((filter) {
                   final isSelected = _selectedFilter == filter;
                   return FilterChip(
