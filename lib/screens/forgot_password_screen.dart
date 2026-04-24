@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:purepond_app/services/auth_service_mock.dart';
+import 'package:purepond_app/services/auth_service.dart';
 import 'package:purepond_app/widgets/custom_text_field.dart';
 import 'package:purepond_app/widgets/custom_button.dart';
 
@@ -23,7 +23,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthServiceMock>(context);
+    final authService = Provider.of<AuthService>(context);
 
     return Scaffold(
       backgroundColor: Colors.white,

@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:purepond_app/screens/main_screen.dart';
 import 'package:purepond_app/screens/forgot_password_screen.dart';
-import 'package:purepond_app/services/auth_service_mock.dart';
+import 'package:purepond_app/services/auth_service.dart';
 import 'package:purepond_app/widgets/custom_text_field.dart';
 import 'package:purepond_app/widgets/custom_button.dart';
 
@@ -15,22 +15,23 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthServiceMock>(context);
+    final authService = Provider.of<AuthService>(context);
 
-    if (authService.isLoggedIn) {
+    // Cek apakah user sudah login
+    if (authService.user != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pushReplacement(
           context,
@@ -54,18 +55,24 @@ class _LoginScreenState extends State<LoginScreen> {
                 Center(
                   child: Column(
                     children: [
-                      // Logo dari assets
                       Container(
                         width: 180,
                         height: 180,
-                        decoration: BoxDecoration(
-                          color: const Color.fromARGB(0, 227, 242, 253),
+                        decoration: const BoxDecoration(
+                          color: Color.fromARGB(0, 227, 242, 253),
                         ),
                         child: Image.asset(
                           'assets/images/logo.png',
                           width: 180,
                           height: 180,
                           fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Icon(
+                              Icons.water_drop,
+                              size: 100,
+                              color: Colors.blue.shade700,
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -84,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // Form Login
                 Text(
-                  'Email',
+                  'Username',
                   style: GoogleFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -93,10 +100,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 CustomTextField(
-                  controller: _emailController,
-                  hintText: 'test@test.com',
-                  prefixIcon: Icons.email_outlined,
-                  keyboardType: TextInputType.emailAddress,
+                  controller: _usernameController,
+                  hintText: 'Masukkan username',
+                  prefixIcon: Icons.person_outline,
+                  keyboardType: TextInputType.text,
                 ),
 
                 const SizedBox(height: 20),
@@ -112,7 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 8),
                 CustomTextField(
                   controller: _passwordController,
-                  hintText: '123456',
+                  hintText: 'Masukkan password',
                   prefixIcon: Icons.lock_outline,
                   obscureText: _obscurePassword,
                   suffixIcon: IconButton(
@@ -181,47 +188,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                const SizedBox(height: 20),
-
-                // Info Login
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline,
-                          color: Colors.blue.shade700, size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Demo: test@test.com / 123456',
-                          style: GoogleFonts.poppins(
-                            color: Colors.blue.shade700,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
                 // Login Button
                 CustomButton(
                   text: 'LOGIN',
                   isLoading: authService.isLoading,
                   onPressed: () async {
-                    if (_emailController.text.isEmpty ||
+                    if (_usernameController.text.isEmpty ||
                         _passwordController.text.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Email dan password harus diisi',
+                            'Username dan password harus diisi',
                             style: GoogleFonts.poppins(),
                           ),
                           backgroundColor: Colors.red,
@@ -231,7 +208,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     }
 
                     bool success = await authService.signIn(
-                      _emailController.text,
+                      _usernameController.text,
                       _passwordController.text,
                     );
 
