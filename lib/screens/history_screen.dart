@@ -37,7 +37,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
         final historyData = snapshot.data ?? [];
 
-        // Hitung statistik
+        // Hitung statistik Minggu Ini & Bulan Ini
         final now = DateTime.now();
         final weekStart = now.subtract(Duration(days: now.weekday - 1));
         final monthStart = DateTime(now.year, now.month, 1);
@@ -56,7 +56,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
         return Column(
           children: [
-            // Statistics Cards - Minggu Ini & Bulan Ini
+            // Statistics Cards
             Container(
               padding: const EdgeInsets.all(16),
               color: Colors.grey.shade50,
@@ -153,24 +153,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                     children: [
                                       Row(
                                         children: [
+                                          // Icon
                                           Container(
                                             padding: const EdgeInsets.all(8),
                                             decoration: BoxDecoration(
-                                              color: item.type == 'Otomatis'
-                                                  ? Colors.green.shade50
-                                                  : Colors.blue.shade50,
+                                              color: Colors.green.shade50,
                                               borderRadius:
                                                   BorderRadius.circular(8),
                                             ),
                                             child: Icon(
                                               Icons.water_drop,
-                                              color: item.type == 'Otomatis'
-                                                  ? Colors.green.shade700
-                                                  : Colors.blue.shade700,
+                                              color: Colors.green.shade700,
                                               size: 20,
                                             ),
                                           ),
                                           const SizedBox(width: 12),
+                                          // Date & Time
                                           Expanded(
                                             child: Column(
                                               crossAxisAlignment:
@@ -193,30 +191,28 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                               ],
                                             ),
                                           ),
+                                          // Badge (HANYA OTOMATIS)
                                           Container(
                                             padding: const EdgeInsets.symmetric(
                                               horizontal: 12,
                                               vertical: 4,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: item.type == 'Otomatis'
-                                                  ? Colors.green.shade100
-                                                  : Colors.blue.shade100,
+                                              color: Colors.green.shade100,
                                               borderRadius:
                                                   BorderRadius.circular(20),
                                             ),
                                             child: Text(
-                                              item.type,
+                                              'Otomatis',
                                               style: GoogleFonts.poppins(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.w600,
-                                                color: item.type == 'Otomatis'
-                                                    ? Colors.green.shade700
-                                                    : Colors.blue.shade700,
+                                                color: Colors.green.shade700,
                                               ),
                                             ),
                                           ),
                                           const SizedBox(width: 8),
+                                          // Expand icon
                                           Icon(
                                             isExpanded
                                                 ? Icons.expand_less
@@ -226,6 +222,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                         ],
                                       ),
                                       const SizedBox(height: 12),
+                                      // Pemicu & Durasi
                                       Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceAround,
@@ -247,7 +244,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 ),
                               ),
 
-                              // Expanded content - Detail Parameter Sebelum Dikuras
+                              // Expanded detail
                               if (isExpanded)
                                 Container(
                                   padding: const EdgeInsets.all(16),
@@ -264,15 +261,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                     children: [
                                       const Divider(height: 1),
                                       const SizedBox(height: 16),
-
-                                      // Title
                                       Row(
                                         children: [
-                                          Icon(
-                                            Icons.analytics_outlined,
-                                            size: 18,
-                                            color: Colors.grey.shade700,
-                                          ),
+                                          Icon(Icons.analytics_outlined,
+                                              size: 18,
+                                              color: Colors.grey.shade700),
                                           const SizedBox(width: 8),
                                           Text(
                                             'Parameter Sebelum Dikuras:',
@@ -284,13 +277,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                           ),
                                         ],
                                       ),
-
                                       const SizedBox(height: 16),
-
-                                      // Parameter Cards
                                       Row(
                                         children: [
-                                          // Kekeruhan
                                           Expanded(
                                             child: _buildParameterCard(
                                               'Kekeruhan',
@@ -302,7 +291,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                             ),
                                           ),
                                           const SizedBox(width: 8),
-                                          // Amonia
                                           Expanded(
                                             child: _buildParameterCard(
                                               'Amonia',
@@ -314,7 +302,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                             ),
                                           ),
                                           const SizedBox(width: 8),
-                                          // pH
                                           Expanded(
                                             child: _buildParameterCard(
                                               'pH',
@@ -327,10 +314,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                           ),
                                         ],
                                       ),
-
                                       const SizedBox(height: 12),
-
-                                      // Kesimpulan
                                       Container(
                                         padding: const EdgeInsets.all(12),
                                         decoration: BoxDecoration(
@@ -370,8 +354,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                                 _getConclusionText(
                                                     turbidityHigh,
                                                     ammoniaHigh,
-                                                    phAbnormal,
-                                                    item.trigger),
+                                                    phAbnormal),
                                                 style: GoogleFonts.poppins(
                                                   fontSize: 12,
                                                   color: (turbidityHigh ||
@@ -409,10 +392,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
+              color: Colors.grey.shade200,
+              blurRadius: 4,
+              offset: const Offset(0, 2)),
         ],
       ),
       child: Column(
@@ -423,37 +405,25 @@ class _HistoryScreenState extends State<HistoryScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                value,
-                style: GoogleFonts.poppins(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
+              Text(value,
+                  style: GoogleFonts.poppins(
+                      fontSize: 28, fontWeight: FontWeight.bold, color: color)),
               const SizedBox(width: 4),
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  suffix,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
+                child: Text(suffix,
+                    style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade600)),
               ),
             ],
           ),
           const SizedBox(height: 4),
-          Text(
-            title,
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-            ),
-            textAlign: TextAlign.center,
-          ),
+          Text(title,
+              style: GoogleFonts.poppins(
+                  fontSize: 12, color: Colors.grey.shade600),
+              textAlign: TextAlign.center),
         ],
       ),
     );
@@ -464,20 +434,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
       children: [
         Icon(icon, size: 16, color: Colors.grey.shade600),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 9,
-            color: Colors.grey.shade500,
-          ),
-        ),
-        Text(
-          value,
-          style: GoogleFonts.poppins(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        Text(label,
+            style:
+                GoogleFonts.poppins(fontSize: 9, color: Colors.grey.shade500)),
+        Text(value,
+            style:
+                GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w500)),
       ],
     );
   }
@@ -496,66 +458,46 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
       child: Column(
         children: [
-          // Icon
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               color: isAbnormal ? Colors.red.shade50 : color.shade50,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Icon(
-              icon,
-              size: 18,
-              color: isAbnormal ? Colors.red.shade700 : color.shade700,
-            ),
+            child: Icon(icon,
+                size: 18,
+                color: isAbnormal ? Colors.red.shade700 : color.shade700),
           ),
           const SizedBox(height: 6),
-          // Label
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey.shade700,
-            ),
-          ),
+          Text(label,
+              style: GoogleFonts.poppins(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey.shade700)),
           const SizedBox(height: 4),
-          // Value
-          Text(
-            value,
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: isAbnormal ? Colors.red.shade700 : Colors.grey.shade800,
-            ),
-          ),
+          Text(value,
+              style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color:
+                      isAbnormal ? Colors.red.shade700 : Colors.grey.shade800)),
           const SizedBox(height: 4),
-          // Normal Range
-          Text(
-            normalRange,
-            style: GoogleFonts.poppins(
-              fontSize: 8,
-              color: Colors.grey.shade500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          // Status Badge if abnormal
+          Text(normalRange,
+              style:
+                  GoogleFonts.poppins(fontSize: 8, color: Colors.grey.shade500),
+              textAlign: TextAlign.center),
           if (isAbnormal) ...[
             const SizedBox(height: 4),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.red.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'Tinggi',
-                style: GoogleFonts.poppins(
-                  fontSize: 8,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.red.shade700,
-                ),
-              ),
+                  color: Colors.red.shade100,
+                  borderRadius: BorderRadius.circular(8)),
+              child: Text('Tinggi',
+                  style: GoogleFonts.poppins(
+                      fontSize: 8,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.red.shade700)),
             ),
           ],
         ],
@@ -564,15 +506,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   String _getConclusionText(
-      bool turbidityHigh, bool ammoniaHigh, bool phAbnormal, String trigger) {
+      bool turbidityHigh, bool ammoniaHigh, bool phAbnormal) {
     List<String> issues = [];
     if (turbidityHigh) issues.add('kekeruhan');
     if (ammoniaHigh) issues.add('amonia');
     if (phAbnormal) issues.add('pH');
-
-    if (trigger == 'Manual') {
-      return 'Pengurasan manual dilakukan oleh pengguna.';
-    }
 
     if (issues.isEmpty) {
       return 'Semua parameter dalam batas normal saat pengurasan dilakukan.';

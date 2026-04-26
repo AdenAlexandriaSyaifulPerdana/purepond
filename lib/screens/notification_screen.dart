@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:purepond_app/services/firestore_service.dart';
+import 'package:purepond_app/services/firestore_service.dart' as fs;
 import 'package:purepond_app/models/notification_model.dart';
 
 class NotificationScreen extends StatefulWidget {
@@ -14,7 +14,7 @@ class NotificationScreen extends StatefulWidget {
 class _NotificationScreenState extends State<NotificationScreen> {
   @override
   Widget build(BuildContext context) {
-    final firestoreService = Provider.of<FirestoreService>(context);
+    final firestoreService = Provider.of<fs.FirestoreService>(context);
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -29,7 +29,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
         actions: [
           TextButton(
             onPressed: () async {
-              // Mark all as read
               final notifications =
                   await firestoreService.getNotificationsStream().first;
               for (var notif in notifications) {
@@ -52,10 +51,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
             },
             child: Text(
               'Tandai Semua',
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: 13,
-              ),
+              style: GoogleFonts.poppins(color: Colors.white, fontSize: 13),
             ),
           ),
         ],
@@ -124,7 +120,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   Widget _buildNotificationCard(
-      NotificationModel notification, FirestoreService firestoreService) {
+      NotificationModel notification, fs.FirestoreService firestoreService) {
     // Warna berdasarkan parameter
     Color getColor(String parameter) {
       switch (parameter) {
@@ -153,153 +149,242 @@ class _NotificationScreenState extends State<NotificationScreen> {
       }
     }
 
+    // Threshold berdasarkan parameter
+    String getThreshold(String parameter) {
+      switch (parameter) {
+        case 'turbidity':
+          return '20.0 NTU';
+        case 'ammonia':
+          return '0.5 ppm';
+        case 'ph':
+          return '6.5 - 8.5';
+        default:
+          return '';
+      }
+    }
+
+    // Unit berdasarkan parameter
+    String getUnit(String parameter) {
+      switch (parameter) {
+        case 'turbidity':
+          return 'NTU';
+        case 'ammonia':
+          return 'ppm';
+        case 'ph':
+          return '';
+        default:
+          return '';
+      }
+    }
+
     final color = getColor(notification.parameter);
     final icon = getIcon(notification.parameter);
-    final timeAgo = _getTimeAgo(notification.dateTime);
+    final threshold = getThreshold(notification.parameter);
+    final unit = getUnit(notification.parameter);
+    final timeAgo = _formatTime(notification.dateTime);
 
-    return Dismissible(
-      key: Key(notification.id),
-      background: Container(
-        color: Colors.red,
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        child: const Icon(Icons.delete, color: Colors.white),
-      ),
-      direction: DismissDirection.endToStart,
-      onDismissed: (direction) {
-        // Hapus notifikasi (opsional)
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Notifikasi dihapus',
-              style: GoogleFonts.poppins(),
-            ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: notification.isRead ? Colors.white : Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          color: notification.isRead ? Colors.white : Colors.blue.shade50,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.shade200,
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-          border: notification.isRead
-              ? null
-              : Border.all(color: Colors.blue.shade200, width: 1),
-        ),
-        child: InkWell(
-          onTap: () async {
-            if (!notification.isRead) {
-              await firestoreService.markAsRead(notification.id);
-              if (mounted) {
-                setState(() {});
-              }
+        ],
+        border: notification.isRead
+            ? null
+            : Border.all(color: Colors.blue.shade200, width: 1),
+      ),
+      child: InkWell(
+        onTap: () async {
+          if (!notification.isRead) {
+            await firestoreService.markAsRead(notification.id);
+            if (mounted) {
+              setState(() {});
             }
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Icon
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
+          }
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // HEADER - Icon + Judul + Body
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(icon, color: color, size: 24),
                   ),
-                  child: Icon(icon, color: color, size: 24),
-                ),
-                const SizedBox(width: 16),
-                // Content
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              notification.title,
-                              style: GoogleFonts.poppins(
-                                fontSize: 15,
-                                fontWeight: notification.isRead
-                                    ? FontWeight.w500
-                                    : FontWeight.bold,
-                                color: Colors.grey.shade800,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                notification.title,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 15,
+                                  fontWeight: notification.isRead
+                                      ? FontWeight.w500
+                                      : FontWeight.bold,
+                                  color: Colors.grey.shade800,
+                                ),
                               ),
                             ),
-                          ),
-                          if (!notification.isRead)
-                            Container(
-                              width: 10,
-                              height: 10,
-                              decoration: const BoxDecoration(
-                                color: Colors.blue,
-                                shape: BoxShape.circle,
+                            if (!notification.isRead)
+                              Container(
+                                width: 10,
+                                height: 10,
+                                decoration: const BoxDecoration(
+                                  color: Colors.blue,
+                                  shape: BoxShape.circle,
+                                ),
                               ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        notification.body,
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          color: Colors.grey.shade600,
+                          ],
                         ),
+                        const SizedBox(height: 4),
+                        Text(
+                          notification.body,
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 12),
+
+              // DETAIL NILAI
+              Row(
+                children: [
+                  // Nilai Saat Trigger
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
                       ),
-                      const SizedBox(height: 8),
-                      Row(
+                      child: Column(
                         children: [
-                          Icon(Icons.access_time,
-                              size: 12, color: Colors.grey.shade500),
-                          const SizedBox(width: 4),
                           Text(
-                            timeAgo,
+                            'Nilai Saat Ini',
                             style: GoogleFonts.poppins(
-                              fontSize: 11,
-                              color: Colors.grey.shade500,
+                              fontSize: 10,
+                              color: Colors.grey.shade600,
                             ),
                           ),
-                          const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: color.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              _getParameterLabel(notification.parameter),
-                              style: GoogleFonts.poppins(
-                                fontSize: 10,
-                                color: color,
-                                fontWeight: FontWeight.w500,
-                              ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${notification.value.toStringAsFixed(1)} $unit',
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red.shade700,
                             ),
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 8),
+                  // Batas Normal
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Batas Normal',
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            threshold,
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              // FOOTER - Waktu + Parameter
+              Row(
+                children: [
+                  Icon(Icons.access_time,
+                      size: 12, color: Colors.grey.shade500),
+                  const SizedBox(width: 4),
+                  Text(
+                    timeAgo,
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      _getParameterLabel(notification.parameter),
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: color,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  String _getTimeAgo(DateTime dateTime) {
+  String _formatTime(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
 

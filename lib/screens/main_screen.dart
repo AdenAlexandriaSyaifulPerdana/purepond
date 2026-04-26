@@ -46,9 +46,34 @@ class _MainScreenState extends State<MainScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          _selectedIndex == 0 ? 'PurePond Monitoring' : 'History Pengurasan',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        title: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/images/logo.png',
+                height: 36,
+                width: 36,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(
+                    Icons.water_drop,
+                    color: Colors.white,
+                    size: 40,
+                  );
+                },
+              ),
+            ),
+            Text(
+              _selectedIndex == 0 ? 'PurePond' : 'History',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                fontSize: 24,
+              ),
+            ),
+            const Spacer(),
+            // Logo di kanan
+          ],
         ),
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,

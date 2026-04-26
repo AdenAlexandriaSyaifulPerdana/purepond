@@ -13,11 +13,11 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _usernameController.dispose();
     super.dispose();
   }
 
@@ -43,12 +43,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 40),
-              Icon(
-                Icons.lock_reset,
-                size: 80,
-                color: Colors.blue.shade700,
+
+              // Icon
+              Center(
+                child: Icon(
+                  Icons.lock_reset,
+                  size: 80,
+                  color: Colors.blue.shade700,
+                ),
               ),
+
               const SizedBox(height: 20),
+
               Text(
                 'Reset Password',
                 style: GoogleFonts.poppins(
@@ -56,21 +62,39 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+
               const SizedBox(height: 8),
+
               Text(
-                'Masukkan email Anda untuk menerima link reset password',
+                'Masukkan username Anda, link reset password akan dikirim ke email yang terdaftar.',
                 style: GoogleFonts.poppins(
                   color: Colors.grey.shade600,
+                  fontSize: 13,
                 ),
               ),
+
               const SizedBox(height: 40),
-              CustomTextField(
-                controller: _emailController,
-                hintText: 'Email',
-                prefixIcon: Icons.email_outlined,
-                keyboardType: TextInputType.emailAddress,
+
+              // Input Username
+              Text(
+                'Username',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey.shade700,
+                ),
               ),
+              const SizedBox(height: 8),
+              CustomTextField(
+                controller: _usernameController,
+                hintText: 'Masukkan username',
+                prefixIcon: Icons.person_outline,
+                keyboardType: TextInputType.text,
+              ),
+
               const SizedBox(height: 20),
+
+              // Error Message
               if (authService.errorMessage != null)
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -96,16 +120,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ],
                   ),
                 ),
+
               const SizedBox(height: 20),
+
+              // Submit Button
               CustomButton(
                 text: 'KIRIM LINK RESET',
                 isLoading: authService.isLoading,
                 onPressed: () async {
-                  if (_emailController.text.isEmpty) {
+                  if (_usernameController.text.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          'Email harus diisi',
+                          'Username harus diisi',
                           style: GoogleFonts.poppins(),
                         ),
                         backgroundColor: Colors.red,
@@ -115,7 +142,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   }
 
                   bool success = await authService.resetPassword(
-                    _emailController.text,
+                    _usernameController.text.trim(),
                   );
 
                   if (success && mounted) {
@@ -131,6 +158,51 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     Navigator.pop(context);
                   }
                 },
+              ),
+
+              const SizedBox(height: 24),
+
+              // Info
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline,
+                        color: Colors.blue.shade700, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Petunjuk:',
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.blue.shade900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '1. Masukkan username Anda\n'
+                            '2. Link reset akan dikirim ke email yang terdaftar\n'
+                            '3. Cek inbox atau folder spam',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: Colors.blue.shade800,
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

@@ -23,21 +23,21 @@ class NotificationModel {
       String id, Map<String, dynamic> data) {
     return NotificationModel(
       id: id,
-      title: data['title'] ?? '',
-      body: data['body'] ?? '',
+      title: data['judul'] ?? data['title'] ?? '', // Support both
+      body: data['isi'] ?? data['body'] ?? '', // Support both
       parameter: data['parameter'] ?? '',
-      value: (data['value'] ?? 0).toDouble(),
-      isRead: data['isRead'] ?? false,
-      createdAt: data['createdAt'] ?? Timestamp.now(),
+      value: (data['nilai'] ?? data['value'] ?? 0).toDouble(), // Support both
+      isRead: data['isRead'] ?? data['is_read'] ?? false, // Support both
+      createdAt: data['createdAt'] ?? data['created_at'] ?? Timestamp.now(),
     );
   }
 
   Map<String, dynamic> toFirestore() {
     return {
-      'title': title,
-      'body': body,
+      'judul': title,
+      'isi': body,
       'parameter': parameter,
-      'value': value,
+      'nilai': value,
       'isRead': isRead,
       'createdAt': createdAt,
     };
