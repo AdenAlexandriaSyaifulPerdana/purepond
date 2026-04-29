@@ -89,7 +89,7 @@ class AuthService extends ChangeNotifier {
       case 'network-request-failed':
         return 'Koneksi internet bermasalah';
       default:
-        return 'Terjadi kesalahan';
+        return 'Username atau password salah';
     }
   }
 
