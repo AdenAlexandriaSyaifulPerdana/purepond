@@ -15,12 +15,13 @@ class AuthService extends ChangeNotifier {
   AuthService() {
     _auth.authStateChanges().listen((User? user) {
       _user = user;
+      _errorMessage = null;
       notifyListeners();
     });
   }
 
   String _usernameToEmail(String username) {
-    return '${username.trim()}@gmail.com';
+    return '${username.trim()}@purepond.app';
   }
 
   Future<bool> signIn(String username, String password) async {
@@ -37,6 +38,7 @@ class AuthService extends ChangeNotifier {
       );
 
       _isLoading = false;
+      _errorMessage = null;
       notifyListeners();
       return true;
     } on FirebaseAuthException catch (e) {
@@ -45,15 +47,19 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       return false;
     } catch (e) {
+      // 🟡 Tampilkan error asli untuk debugging
+      debugPrint('Login error: ${e.toString()}');
       _isLoading = false;
-      _errorMessage = 'Terjadi kesalahan. Silakan coba lagi.';
+      _errorMessage = 'Login gagal. Periksa koneksi internet Anda.\n'
+          'Pastikan username dan password benar.\n'
+          'Detail: ${e.toString()}';
       notifyListeners();
       return false;
     }
   }
 
   Future<void> signOut() async {
-    _errorMessage = null; // ✅ Clear error sebelum logout
+    _errorMessage = null;
     notifyListeners();
     await _auth.signOut();
   }
@@ -68,6 +74,7 @@ class AuthService extends ChangeNotifier {
       await _auth.sendPasswordResetEmail(email: email);
 
       _isLoading = false;
+      _errorMessage = null;
       notifyListeners();
       return true;
     } on FirebaseAuthException catch (e) {
@@ -89,7 +96,7 @@ class AuthService extends ChangeNotifier {
       case 'network-request-failed':
         return 'Koneksi internet bermasalah';
       default:
-        return 'Username atau password salah';
+        return 'Terjadi kesalahan (kode: $code)';
     }
   }
 
