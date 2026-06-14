@@ -1,4 +1,4 @@
-package com.example.purepond_app
+package com.example.purepond_app2
 
 import io.flutter.embedding.android.FlutterActivity
 

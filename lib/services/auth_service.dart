@@ -21,7 +21,7 @@ class AuthService extends ChangeNotifier {
   }
 
   String _usernameToEmail(String username) {
-    return '${username.trim()}@purepond.app';
+    return '${username.trim()}@gmail.com';
   }
 
   Future<bool> signIn(String username, String password) async {
@@ -47,12 +47,10 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       return false;
     } catch (e) {
-      // 🟡 Tampilkan error asli untuk debugging
+      // Error lain selain dari FirebaseAuth
       debugPrint('Login error: ${e.toString()}');
       _isLoading = false;
-      _errorMessage = 'Login gagal. Periksa koneksi internet Anda.\n'
-          'Pastikan username dan password benar.\n'
-          'Detail: ${e.toString()}';
+      // _errorMessage = 'Login gagal. Periksa koneksi internet Anda.';
       notifyListeners();
       return false;
     }
@@ -85,19 +83,38 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  // Method yang lebih fleksibel untuk menangani berbagai versi kode error
   String _getErrorMessage(String code) {
-    switch (code) {
-      case 'user-not-found':
-        return 'Username tidak terdaftar';
-      case 'wrong-password':
-        return 'Password salah';
-      case 'invalid-email':
-        return 'Format username tidak valid';
-      case 'network-request-failed':
-        return 'Koneksi internet bermasalah';
-      default:
-        return 'Terjadi kesalahan (kode: $code)';
+    // Ubah kode menjadi huruf kecil dan ganti underscore menjadi dash
+    // agar mudah dibandingkan
+    String lowerCode = code.toLowerCase().replaceAll('_', '-');
+
+    // Di Firebase Auth versi terbaru, user-not-found dan wrong-password
+    // digantikan oleh invalid-credential. Kita tangani di sini.
+    if (lowerCode.contains('invalid-credential')) {
+      return 'Username atau password salah.';
     }
+    if (lowerCode.contains('user-not-found')) {
+      return 'Username tidak terdaftar';
+    }
+    if (lowerCode.contains('wrong-password')) {
+      return 'Password salah';
+    }
+    if (lowerCode.contains('invalid-email')) {
+      return 'Format username tidak valid';
+    }
+    if (lowerCode.contains('network-request-failed') ||
+        lowerCode.contains('network-error')) {
+      return 'Koneksi internet bermasalah';
+    }
+    if (lowerCode.contains('too-many-requests')) {
+      return 'Terlalu banyak percobaan. Silakan coba lagi nanti.';
+    }
+    if (lowerCode.contains('operation-not-allowed')) {
+      return 'Login dengan email/password belum diaktifkan.';
+    }
+    // Jika kode error tidak dikenali, tampilkan kode asli agar bisa di-debug
+    return 'Gagal login (kode: $code)';
   }
 
   void clearError() {

@@ -1,224 +1,158 @@
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
-import 'package:purepond_app/services/firestore_service.dart' as fs;
-import 'package:purepond_app/models/notification_model.dart';
+import 'dart:io';
 
-class NotificationScreen extends StatefulWidget {
-  const NotificationScreen({super.key});
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-  @override
-  State<NotificationScreen> createState() => _NotificationScreenState();
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  try {
+    await Firebase.initializeApp();
+  } catch (_) {}
 }
 
-class _NotificationScreenState extends State<NotificationScreen> {
-  @override
-  Widget build(BuildContext context) {
-    final firestoreService = Provider.of<fs.FirestoreService>(context);
+class NotificationService {
+  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
 
-    return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        title: Text(
-          'Notifikasi',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: StreamBuilder<List<NotificationModel>>(
-        stream: firestoreService.getNotificationsStream(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Error: ${snapshot.error}',
-                style: GoogleFonts.poppins(),
-              ),
-            );
-          }
+  static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
+    'purepond_alert_channel',
+    'PurePond Alerts',
+    description: 'Notifikasi kualitas air dan pengurasan otomatis',
+    importance: Importance.high,
+  );
 
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+  Future<void> initialize() async {
+    try {
+      await _requestPermission();
+      await _initializeLocalNotification();
+      await _saveFcmToken();
 
-          final notifications = snapshot.data ?? [];
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        _showForegroundFirebaseNotification(message);
+      });
 
-          if (notifications.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.notifications_off_outlined,
-                    size: 64,
-                    color: Colors.grey.shade400,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Belum ada notifikasi',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: notifications.length,
-            itemBuilder: (context, index) {
-              final notification = notifications[index];
-              return _buildNotificationCard(notification, firestoreService);
-            },
-          );
-        },
-      ),
-    );
+      _messaging.onTokenRefresh.listen((token) async {
+        await _saveTokenToFirestore(token);
+      });
+    } catch (e) {
+      debugPrint('NotificationService initialize error: $e');
+    }
   }
 
-  Widget _buildNotificationCard(
-      NotificationModel notification, fs.FirestoreService firestoreService) {
-    Color getColor(String parameter) {
-      switch (parameter) {
-        case 'turbidity':
-          return Colors.brown.shade700;
-        case 'ammonia':
-          return Colors.purple.shade700;
-        case 'ph':
-          return Colors.blue.shade700;
-        default:
-          return Colors.grey.shade700;
-      }
+  Future<void> _requestPermission() async {
+    try {
+      await _messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    } catch (e) {
+      debugPrint('Request notification permission error: $e');
     }
-
-    IconData getIcon(String parameter) {
-      switch (parameter) {
-        case 'turbidity':
-          return Icons.waves;
-        case 'ammonia':
-          return Icons.air;
-        case 'ph':
-          return Icons.science;
-        default:
-          return Icons.notifications;
-      }
-    }
-
-    final color = getColor(notification.parameter);
-    final icon = getIcon(notification.parameter);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: notification.isRead ? Colors.white : Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-        border: notification.isRead
-            ? null
-            : Border.all(color: Colors.blue.shade200, width: 1),
-      ),
-      child: InkWell(
-        onTap: () async {
-          if (!notification.isRead) {
-            await firestoreService.markAsRead(notification.id);
-            if (mounted) {
-              setState(() {});
-            }
-          }
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: color, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            notification.title,
-                            style: GoogleFonts.poppins(
-                              fontSize: 15,
-                              fontWeight: notification.isRead
-                                  ? FontWeight.w500
-                                  : FontWeight.bold,
-                              color: Colors.grey.shade800,
-                            ),
-                          ),
-                        ),
-                        if (!notification.isRead)
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: const BoxDecoration(
-                              color: Colors.blue,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      notification.body,
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _formatTime(notification.dateTime),
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
-  String _formatTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
+  Future<void> _initializeLocalNotification() async {
+    try {
+      const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    if (difference.inMinutes < 1) {
-      return 'Baru saja';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes} menit yang lalu';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours} jam yang lalu';
-    } else {
-      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+      const initSettings = InitializationSettings(
+        android: androidInit,
+      );
+
+      await _localNotifications.initialize(initSettings);
+
+      final androidPlugin =
+          _localNotifications.resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+
+      await androidPlugin?.createNotificationChannel(_channel);
+      await androidPlugin?.requestNotificationsPermission();
+    } catch (e) {
+      debugPrint('Local notification init error: $e');
     }
+  }
+
+  Future<void> _saveFcmToken() async {
+    try {
+      final token = await _messaging.getToken();
+
+      if (token != null) {
+        await _saveTokenToFirestore(token);
+      }
+    } catch (e) {
+      debugPrint('Get FCM token error: $e');
+    }
+  }
+
+  Future<void> _saveTokenToFirestore(String token) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      await FirebaseFirestore.instance.collection('fcmTokens').doc(token).set({
+        'token': token,
+        'platform': Platform.isAndroid ? 'android' : 'unknown',
+        'userId': user?.uid,
+        'email': user?.email,
+        'enabled': true,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Save FCM token error: $e');
+    }
+  }
+
+  Future<void> showLocalNotification({
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    try {
+      const androidDetails = AndroidNotificationDetails(
+        'purepond_alert_channel',
+        'PurePond Alerts',
+        channelDescription: 'Notifikasi kualitas air dan pengurasan otomatis',
+        importance: Importance.high,
+        priority: Priority.high,
+        icon: '@mipmap/ic_launcher',
+      );
+
+      const notificationDetails = NotificationDetails(
+        android: androidDetails,
+      );
+
+      await _localNotifications.show(
+        DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        title,
+        body,
+        notificationDetails,
+        payload: payload,
+      );
+    } catch (e) {
+      debugPrint('Show local notification error: $e');
+    }
+  }
+
+  Future<void> _showForegroundFirebaseNotification(
+    RemoteMessage message,
+  ) async {
+    final notification = message.notification;
+
+    final title =
+        notification?.title ?? message.data['title']?.toString() ?? 'PurePond';
+
+    final body = notification?.body ??
+        message.data['body']?.toString() ??
+        'Ada pembaruan kualitas air.';
+
+    await showLocalNotification(
+      title: title,
+      body: body,
+      payload: message.data.toString(),
+    );
   }
 }

@@ -1,117 +1,170 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:purepond_app/services/firestore_service.dart' as fs;
-import 'package:purepond_app/models/notification_model.dart';
 
-class NotificationScreen extends StatefulWidget {
+import 'package:purepond_app/models/notification_model.dart';
+import 'package:purepond_app/services/firestore_service.dart';
+
+class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});
 
-  @override
-  State<NotificationScreen> createState() => _NotificationScreenState();
-}
+  String _formatDate(DateTime dateTime) {
+    final day = dateTime.day.toString().padLeft(2, '0');
+    final month = dateTime.month.toString().padLeft(2, '0');
+    final year = dateTime.year.toString();
+    final hour = dateTime.hour.toString().padLeft(2, '0');
+    final minute = dateTime.minute.toString().padLeft(2, '0');
 
-class _NotificationScreenState extends State<NotificationScreen> {
+    return '$day/$month/$year $hour:$minute';
+  }
+
+  String _formatParameter(String parameter) {
+    final lower = parameter.toLowerCase();
+
+    if (lower.contains('ammonia') || lower.contains('amonia')) {
+      return 'Amonia';
+    }
+
+    if (lower.contains('turbidity') || lower.contains('kekeruhan')) {
+      return 'Kekeruhan';
+    }
+
+    if (lower.contains('both') || lower.contains('dua')) {
+      return 'Amonia & Kekeruhan';
+    }
+
+    return parameter.isEmpty ? '-' : parameter;
+  }
+
+  String _unit(String parameter) {
+    final lower = parameter.toLowerCase();
+
+    if (lower.contains('ammonia') || lower.contains('amonia')) {
+      return 'ppm';
+    }
+
+    if (lower.contains('turbidity') || lower.contains('kekeruhan')) {
+      return 'NTU';
+    }
+
+    return '';
+  }
+
+  Color _notificationColor(NotificationModel notification) {
+    if (notification.isDrainNotification) {
+      return Colors.red;
+    }
+
+    final parameter = notification.parameter.toLowerCase();
+
+    if (parameter.contains('ammonia') || parameter.contains('amonia')) {
+      return Colors.purple;
+    }
+
+    if (parameter.contains('turbidity') || parameter.contains('kekeruhan')) {
+      return Colors.blue;
+    }
+
+    return Colors.orange;
+  }
+
+  IconData _notificationIcon(NotificationModel notification) {
+    if (notification.isDrainNotification) {
+      return Icons.water_damage_rounded;
+    }
+
+    final parameter = notification.parameter.toLowerCase();
+
+    if (parameter.contains('ammonia') || parameter.contains('amonia')) {
+      return Icons.science;
+    }
+
+    if (parameter.contains('turbidity') || parameter.contains('kekeruhan')) {
+      return Icons.water_drop;
+    }
+
+    return Icons.notifications_active;
+  }
+
+  String _typeLabel(NotificationModel notification) {
+    if (notification.isDrainNotification) {
+      return 'Pengurasan';
+    }
+
+    return 'Peringatan';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final firestoreService = Provider.of<fs.FirestoreService>(context);
+    final firestoreService = Provider.of<FirestoreService>(context);
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: const Color(0xFFF4F8FB),
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.white,
         title: Text(
           'Notifikasi',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          style: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey.shade900,
+          ),
         ),
-        backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
-        elevation: 0,
         actions: [
-          TextButton(
+          IconButton(
+            tooltip: 'Tandai semua dibaca',
             onPressed: () async {
-              final notifications =
-                  await firestoreService.getNotificationsStream().first;
-              for (var notif in notifications) {
-                if (!notif.isRead) {
-                  await firestoreService.markAsRead(notif.id);
-                }
-              }
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Semua notifikasi ditandai sudah dibaca',
-                      style: GoogleFonts.poppins(),
-                    ),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-                setState(() {});
-              }
+              await firestoreService.markAllAsRead();
             },
-            child: Text(
-              'Tandai Semua',
-              style: GoogleFonts.poppins(color: Colors.white, fontSize: 13),
-            ),
+            icon: const Icon(Icons.done_all),
+            color: Colors.blue.shade700,
           ),
         ],
       ),
       body: StreamBuilder<List<NotificationModel>>(
         stream: firestoreService.getNotificationsStream(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Error: ${snapshot.error}',
-                style: GoogleFonts.poppins(),
-              ),
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              !snapshot.hasData) {
+            return const Center(
+              child: CircularProgressIndicator(),
             );
           }
 
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+          if (snapshot.hasError) {
+            return _buildMessage(
+              icon: Icons.error_outline,
+              title: 'Gagal memuat notifikasi',
+              subtitle: snapshot.error.toString(),
+              color: Colors.red,
+            );
           }
 
           final notifications = snapshot.data ?? [];
 
           if (notifications.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.notifications_off_outlined,
-                    size: 80,
-                    color: Colors.grey.shade400,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Belum ada notifikasi',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Notifikasi akan muncul saat\nparameter melebihi batas',
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      color: Colors.grey.shade500,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
+            return _buildMessage(
+              icon: Icons.notifications_none,
+              title: 'Belum ada notifikasi',
+              subtitle:
+                  'Notifikasi akan muncul saat kualitas air melewati batas.',
+              color: Colors.blue,
             );
           }
 
-          return ListView.builder(
+          return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: notifications.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final notification = notifications[index];
-              return _buildNotificationCard(notification, firestoreService);
+
+              return _buildNotificationCard(
+                context,
+                notification,
+                firestoreService,
+              );
             },
           );
         },
@@ -119,298 +172,307 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
-  Widget _buildNotificationCard(
-      NotificationModel notification, fs.FirestoreService firestoreService) {
-    // Warna berdasarkan parameter
-    Color getColor(String parameter) {
-      switch (parameter) {
-        case 'turbidity':
-          return Colors.brown.shade700;
-        case 'ammonia':
-          return Colors.purple.shade700;
-        case 'ph':
-          return Colors.blue.shade700;
-        default:
-          return Colors.grey.shade700;
-      }
-    }
-
-    // Icon berdasarkan parameter
-    IconData getIcon(String parameter) {
-      switch (parameter) {
-        case 'turbidity':
-          return Icons.waves;
-        case 'ammonia':
-          return Icons.air;
-        case 'ph':
-          return Icons.science;
-        default:
-          return Icons.notifications;
-      }
-    }
-
-    // Threshold berdasarkan parameter
-    String getThreshold(String parameter) {
-      switch (parameter) {
-        case 'turbidity':
-          return '20.0 NTU';
-        case 'ammonia':
-          return '0.5 ppm';
-        case 'ph':
-          return '6.5 - 8.5';
-        default:
-          return '';
-      }
-    }
-
-    // Unit berdasarkan parameter
-    String getUnit(String parameter) {
-      switch (parameter) {
-        case 'turbidity':
-          return 'NTU';
-        case 'ammonia':
-          return 'ppm';
-        case 'ph':
-          return '';
-        default:
-          return '';
-      }
-    }
-
-    final color = getColor(notification.parameter);
-    final icon = getIcon(notification.parameter);
-    final threshold = getThreshold(notification.parameter);
-    final unit = getUnit(notification.parameter);
-    final timeAgo = _formatTime(notification.dateTime);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: notification.isRead ? Colors.white : Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-        border: notification.isRead
-            ? null
-            : Border.all(color: Colors.blue.shade200, width: 1),
-      ),
-      child: InkWell(
-        onTap: () async {
-          if (!notification.isRead) {
-            await firestoreService.markAsRead(notification.id);
-            if (mounted) {
-              setState(() {});
-            }
-          }
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // HEADER - Icon + Judul + Body
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(icon, color: color, size: 24),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                notification.title,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 15,
-                                  fontWeight: notification.isRead
-                                      ? FontWeight.w500
-                                      : FontWeight.bold,
-                                  color: Colors.grey.shade800,
-                                ),
-                              ),
-                            ),
-                            if (!notification.isRead)
-                              Container(
-                                width: 10,
-                                height: 10,
-                                decoration: const BoxDecoration(
-                                  color: Colors.blue,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          notification.body,
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+  Widget _buildMessage({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+  }) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 74,
+              color: color.withOpacity(0.75),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade900,
               ),
-
-              const SizedBox(height: 12),
-              const Divider(),
-              const SizedBox(height: 12),
-
-              // DETAIL NILAI
-              Row(
-                children: [
-                  // Nilai Saat Trigger
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.shade200),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            'Nilai Saat Ini',
-                            style: GoogleFonts.poppins(
-                              fontSize: 10,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${notification.value.toStringAsFixed(1)} $unit',
-                            style: GoogleFonts.poppins(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red.shade700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Batas Normal
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.green.shade200),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            'Batas Normal',
-                            style: GoogleFonts.poppins(
-                              fontSize: 10,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            threshold,
-                            style: GoogleFonts.poppins(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green.shade700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: Colors.grey.shade600,
               ),
-
-              const SizedBox(height: 12),
-
-              // FOOTER - Waktu + Parameter
-              Row(
-                children: [
-                  Icon(Icons.access_time,
-                      size: 12, color: Colors.grey.shade500),
-                  const SizedBox(width: 4),
-                  Text(
-                    timeAgo,
-                    style: GoogleFonts.poppins(
-                      fontSize: 11,
-                      color: Colors.grey.shade500,
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      _getParameterLabel(notification.parameter),
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        color: color,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  String _formatTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
+  Widget _buildNotificationCard(
+    BuildContext context,
+    NotificationModel notification,
+    FirestoreService firestoreService,
+  ) {
+    final color = _notificationColor(notification);
+    final unit = _unit(notification.parameter);
 
-    if (difference.inMinutes < 1) {
-      return 'Baru saja';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes} menit yang lalu';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours} jam yang lalu';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} hari yang lalu';
-    } else {
-      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
-    }
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: () async {
+        if (!notification.isRead) {
+          await firestoreService.markAsRead(notification.id);
+        }
+
+        if (context.mounted) {
+          _showNotificationDetail(context, notification);
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: notification.isRead ? Colors.white : color.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: notification.isRead
+                ? Colors.transparent
+                : color.withOpacity(0.35),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Stack(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    _notificationIcon(notification),
+                    color: color,
+                    size: 28,
+                  ),
+                ),
+                if (!notification.isRead)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    notification.title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    notification.body,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          _typeLabel(notification),
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: color,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${notification.value.toStringAsFixed(2)} $unit',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: Colors.grey.shade500,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right,
+              color: Colors.grey,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  String _getParameterLabel(String parameter) {
-    switch (parameter) {
-      case 'turbidity':
-        return 'Kekeruhan';
-      case 'ammonia':
-        return 'Amonia';
-      case 'ph':
-        return 'pH';
-      default:
-        return parameter;
-    }
+  void _showNotificationDetail(
+    BuildContext context,
+    NotificationModel notification,
+  ) {
+    final color = _notificationColor(notification);
+    final unit = _unit(notification.parameter);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return Container(
+          margin: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        _notificationIcon(notification),
+                        color: color,
+                        size: 30,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        notification.title,
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  notification.body,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: Colors.grey.shade700,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _detailRow(
+                  'Jenis',
+                  _typeLabel(notification),
+                ),
+                _detailRow(
+                  'Parameter',
+                  _formatParameter(notification.parameter),
+                ),
+                _detailRow(
+                  'Nilai',
+                  '${notification.value.toStringAsFixed(2)} $unit',
+                ),
+                _detailRow(
+                  'Batas',
+                  '${notification.threshold.toStringAsFixed(2)} $unit',
+                ),
+                _detailRow(
+                  'Waktu',
+                  _formatDate(notification.dateTime),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade900,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

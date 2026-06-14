@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:purepond_app/services/auth_service.dart';
-import 'package:purepond_app/services/firestore_service.dart' as fs;
+
+import 'package:purepond_app/screens/history_screen.dart';
 import 'package:purepond_app/screens/login_screen.dart';
 import 'package:purepond_app/screens/monitoring_screen.dart';
-import 'package:purepond_app/screens/history_screen.dart';
 import 'package:purepond_app/screens/notification_screen.dart';
+import 'package:purepond_app/services/auth_service.dart';
+import 'package:purepond_app/services/event_service.dart';
+import 'package:purepond_app/services/firestore_service.dart' as fs;
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -18,10 +20,11 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   int _unreadCount = 0;
+  bool _eventListenerStarted = false;
 
-  final List<Widget> _screens = [
-    const MonitoringScreen(),
-    const HistoryScreen(),
+  final List<Widget> _screens = const [
+    MonitoringScreen(),
+    HistoryScreen(),
   ];
 
   @override
@@ -30,9 +33,24 @@ class _MainScreenState extends State<MainScreen> {
     _loadUnreadCount();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (!_eventListenerStarted) {
+      _eventListenerStarted = true;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        context.read<EventService>().startListening();
+      });
+    }
+  }
+
   Future<void> _loadUnreadCount() async {
     final firestoreService = context.read<fs.FirestoreService>();
     final count = await firestoreService.getUnreadCount();
+
     if (mounted) {
       setState(() {
         _unreadCount = count;
@@ -56,14 +74,15 @@ class _MainScreenState extends State<MainScreen> {
                 width: 36,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
-                  return Icon(
+                  return const Icon(
                     Icons.water_drop,
                     color: Colors.white,
-                    size: 40,
+                    size: 36,
                   );
                 },
               ),
             ),
+            const SizedBox(width: 10),
             Text(
               _selectedIndex == 0 ? 'PurePond' : 'History',
               style: GoogleFonts.poppins(
@@ -71,15 +90,12 @@ class _MainScreenState extends State<MainScreen> {
                 fontSize: 24,
               ),
             ),
-            const Spacer(),
-            // Logo di kanan
           ],
         ),
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
-          // Notification Button
           Stack(
             children: [
               IconButton(
@@ -91,6 +107,7 @@ class _MainScreenState extends State<MainScreen> {
                       builder: (context) => const NotificationScreen(),
                     ),
                   );
+
                   if (mounted) {
                     _loadUnreadCount();
                   }
@@ -123,15 +140,17 @@ class _MainScreenState extends State<MainScreen> {
                 ),
             ],
           ),
-          // Logout Button
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
               await authService.signOut();
+
               if (context.mounted) {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const LoginScreen(),
+                  ),
                 );
               }
             },
@@ -155,6 +174,8 @@ class _MainScreenState extends State<MainScreen> {
             setState(() {
               _selectedIndex = index;
             });
+
+            _loadUnreadCount();
           },
           backgroundColor: Colors.white,
           selectedItemColor: Colors.blue.shade700,

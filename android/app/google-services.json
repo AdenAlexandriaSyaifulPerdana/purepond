@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "926931099173",
+    "firebase_url": "https://purepond-67695-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "purepond-67695",
+    "storage_bucket": "purepond-67695.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:926931099173:android:9cbca0100791998d5ea9cc",
+        "android_client_info": {
+          "package_name": "com.example.purepond_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyALmqPA0f_3_yIrH2AtgTos4ZGOQt83kDg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:926931099173:android:0bebe629e19a6cb75ea9cc",
+        "android_client_info": {
+          "package_name": "com.example.purepond_app2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyALmqPA0f_3_yIrH2AtgTos4ZGOQt83kDg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

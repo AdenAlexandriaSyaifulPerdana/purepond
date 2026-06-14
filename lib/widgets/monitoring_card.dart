@@ -75,18 +75,23 @@ class MonitoringCard extends StatelessWidget {
                     ),
                     Row(
                       children: [
-                        Text(
-                          subtitle,
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            color: color,
-                            fontWeight: FontWeight.w500,
+                        Flexible(
+                          child: Text(
+                            subtitle,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: color,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(4),
@@ -109,7 +114,6 @@ class MonitoringCard extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // Value
           Text(
             value,
             style: GoogleFonts.poppins(
@@ -121,7 +125,6 @@ class MonitoringCard extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // Progress Bar
           Stack(
             children: [
               Container(
@@ -145,7 +148,7 @@ class MonitoringCard extends StatelessWidget {
               ),
               if (thresholdMax == null)
                 Positioned(
-                  left: (threshold / maxValue) *
+                  left: ((threshold / maxValue).clamp(0.0, 1.0)) *
                       MediaQuery.of(context).size.width *
                       0.8,
                   child: Container(
@@ -162,7 +165,6 @@ class MonitoringCard extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          // Min/Max Labels
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -206,7 +208,7 @@ class MonitoringCard extends StatelessWidget {
   List<Color> _getGradientColors() {
     if (color == Colors.green) {
       return [Colors.green.shade400, Colors.green.shade600];
-    } else if (color == Colors.orange) {
+    } else if (color == Colors.orange || color == Colors.orange.shade300) {
       return [Colors.orange.shade400, Colors.orange.shade600];
     } else {
       return [Colors.red.shade400, Colors.red.shade600];
