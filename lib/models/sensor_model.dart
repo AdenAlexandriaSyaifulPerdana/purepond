@@ -8,6 +8,12 @@ class SensorModel {
   final double turbidityVoltage;
   final double ammoniaVoltage;
 
+  final double waterDistanceCm;
+  final double waterPercent;
+  final bool waterFull;
+  final bool waterEmpty;
+  final String waterStatus;
+
   final bool waterLevelUpper;
   final bool waterLevelLower;
 
@@ -41,6 +47,11 @@ class SensorModel {
     required this.ammoniaRaw,
     required this.turbidityVoltage,
     required this.ammoniaVoltage,
+    required this.waterDistanceCm,
+    required this.waterPercent,
+    required this.waterFull,
+    required this.waterEmpty,
+    required this.waterStatus,
     required this.waterLevelUpper,
     required this.waterLevelLower,
     required this.waterLevelUpperDistanceCm,
@@ -70,6 +81,11 @@ class SensorModel {
       ammoniaRaw: 0,
       turbidityVoltage: 0,
       ammoniaVoltage: 0,
+      waterDistanceCm: 999,
+      waterPercent: 0,
+      waterFull: false,
+      waterEmpty: false,
+      waterStatus: 'not_detected',
       waterLevelUpper: false,
       waterLevelLower: false,
       waterLevelUpperDistanceCm: 999,
@@ -77,7 +93,7 @@ class SensorModel {
       waterLevelLowerPercent: 0,
       waterLevelLowerRaw: 0,
       waterLevelLowerVoltage: 0,
-      waterLevelLowerEmpty: true,
+      waterLevelLowerEmpty: false,
       autoMode: true,
       isDraining: false,
       isFilling: false,
@@ -95,19 +111,36 @@ class SensorModel {
   factory SensorModel.fromRealtimeDB(Map<String, dynamic> data) {
     final turbidityMap = _toMap(data['turbidity']);
     final ammoniaMap = _toMap(data['ammonia']);
+    final waterMap = _toMap(data['waterLevel']);
     final lowerMap = _toMap(data['waterLevelLower']);
     final upperMap = _toMap(data['waterLevelUpper']);
     final systemMap = _toMap(data['system']);
 
-    final double upperDistanceCm = _toDouble(
-      upperMap['distanceCm'],
+    final double distance = _toDouble(
+      waterMap['distanceCm'] ?? upperMap['distanceCm'],
       999,
     );
 
-    final String upperStatus = upperMap['status']?.toString() ?? 'not_detected';
+    final double percent = _toDouble(
+      waterMap['percent'] ?? lowerMap['percent'],
+      0,
+    );
 
-    final bool upperFull = upperMap['full'] == true ||
-        (upperStatus == 'detected' && upperDistanceCm <= 4.0);
+    final bool full =
+        waterMap['full'] == true || upperMap['full'] == true || distance <= 3.0;
+
+    final bool empty = waterMap['empty'] == true ||
+        lowerMap['empty'] == true ||
+        distance >= 12.0;
+
+    final String status = waterMap['status']?.toString() ??
+        (distance >= 999
+            ? 'not_detected'
+            : full
+                ? 'full'
+                : empty
+                    ? 'empty'
+                    : 'normal');
 
     return SensorModel(
       turbidity: _toDouble(turbidityMap['value']),
@@ -116,21 +149,26 @@ class SensorModel {
       ammoniaRaw: _toInt(ammoniaMap['raw']),
       turbidityVoltage: _toDouble(turbidityMap['voltage']),
       ammoniaVoltage: _toDouble(ammoniaMap['voltage']),
-      waterLevelUpper: upperFull,
-      waterLevelLower: lowerMap['detected'] == true,
-      waterLevelUpperDistanceCm: upperDistanceCm,
-      waterLevelUpperStatus: upperStatus,
-      waterLevelLowerPercent: _toDouble(lowerMap['percent']),
+      waterDistanceCm: distance,
+      waterPercent: percent,
+      waterFull: full,
+      waterEmpty: empty,
+      waterStatus: status,
+      waterLevelUpper: full,
+      waterLevelLower: !empty,
+      waterLevelUpperDistanceCm: distance,
+      waterLevelUpperStatus: status,
+      waterLevelLowerPercent: percent,
       waterLevelLowerRaw: _toInt(lowerMap['raw']),
       waterLevelLowerVoltage: _toDouble(lowerMap['voltage']),
-      waterLevelLowerEmpty: lowerMap['empty'] == true,
+      waterLevelLowerEmpty: empty,
       autoMode: data['autoMode'] == null ? true : data['autoMode'] == true,
       isDraining: data['isDraining'] == true,
       isFilling: data['isFilling'] == true,
       drainCycleLocked: data['drainCycleLocked'] == true,
       drainTriggerReason: data['drainTriggerReason']?.toString() ?? '',
       state: data['state']?.toString() ?? 'UNKNOWN',
-      needDrain: data['needDrain'] == true,
+      needDrain: data['needDrain'] == true || data['drainCondition'] == true,
       ammoniaBad: data['ammoniaBad'] == true,
       turbidityBad: data['turbidityBad'] == true,
       wifiConnected: systemMap['wifiConnected'] == true,
@@ -146,6 +184,13 @@ class SensorModel {
       'ammoniaRaw': ammoniaRaw,
       'turbidityVoltage': turbidityVoltage,
       'ammoniaVoltage': ammoniaVoltage,
+      'waterLevel': {
+        'distanceCm': waterDistanceCm,
+        'percent': waterPercent,
+        'full': waterFull,
+        'empty': waterEmpty,
+        'status': waterStatus,
+      },
       'waterLevelUpper': waterLevelUpper,
       'waterLevelLower': waterLevelLower,
       'waterLevelUpperDistanceCm': waterLevelUpperDistanceCm,

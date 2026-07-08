@@ -258,12 +258,27 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
   }
 
   Widget _buildWaterLevelStatus(SensorModel data) {
-    final String upperDetail = data.waterLevelUpperDistanceCm >= 999
-        ? 'Tidak terbaca'
-        : '${data.waterLevelUpperDistanceCm.toStringAsFixed(1)} cm';
+    Color statusColor;
+    String statusText;
+    IconData statusIcon;
 
-    final String lowerDetail =
-        '${data.waterLevelLowerPercent.toStringAsFixed(0)}%';
+    if (data.waterFull) {
+      statusColor = Colors.green;
+      statusText = 'Penuh';
+      statusIcon = Icons.water_drop;
+    } else if (data.waterEmpty) {
+      statusColor = Colors.red;
+      statusText = 'Habis';
+      statusIcon = Icons.warning;
+    } else if (data.waterDistanceCm >= 999) {
+      statusColor = Colors.grey;
+      statusText = 'Tidak Terbaca';
+      statusIcon = Icons.sensors_off;
+    } else {
+      statusColor = Colors.orange;
+      statusText = 'Belum Penuh';
+      statusIcon = Icons.water;
+    }
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -290,7 +305,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Status Water Level Sensor',
+                  'Status Air Berdasarkan Ultrasonic',
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -302,29 +317,70 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
           const SizedBox(height: 16),
           Row(
             children: [
+              Icon(
+                statusIcon,
+                size: 42,
+                color: statusColor,
+              ),
+              const SizedBox(width: 16),
               Expanded(
-                child: _buildSensorStatus(
-                  label: 'Sensor Atas',
-                  isActive: data.waterLevelUpper,
-                  activeText: 'Penuh',
-                  inactiveText: 'Belum Penuh',
-                  icon: Icons.water_drop,
-                  detail: upperDetail,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      statusText,
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: statusColor,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Jarak ultrasonic: ${data.waterDistanceCm.toStringAsFixed(1)} cm',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                    Text(
+                      'Estimasi volume air: ${data.waterPercent.toStringAsFixed(0)}%',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Container(
-                width: 1,
-                height: 70,
-                color: Colors.grey.shade300,
+            ],
+          ),
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: (data.waterPercent / 100).clamp(0.0, 1.0),
+              minHeight: 9,
+              backgroundColor: Colors.grey.shade200,
+              valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Habis: 7.5 cm',
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  color: Colors.grey.shade600,
+                ),
               ),
-              Expanded(
-                child: _buildSensorStatus(
-                  label: 'Sensor Bawah',
-                  isActive: data.waterLevelLower,
-                  activeText: 'Terendam',
-                  inactiveText: 'Tidak Terendam',
-                  icon: Icons.water,
-                  detail: lowerDetail,
+              Text(
+                'Penuh: 3.5 cm',
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  color: Colors.grey.shade600,
                 ),
               ),
             ],

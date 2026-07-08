@@ -62,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           color: Color.fromARGB(0, 227, 242, 253),
                         ),
                         child: Image.asset(
-                          'assets/images/logo.png',
+                          'assets/images/login.png',
                           width: 180,
                           height: 180,
                           fit: BoxFit.cover,
